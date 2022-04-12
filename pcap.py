@@ -33,6 +33,11 @@ class Pcap:
 
         def toString(self, indentationLevel=0):
             indentation = makeIndentation(indentationLevel)
+            linktypeName = ''
+            try:
+                linktypeName = LinkType(self.linkType).name
+            except:
+                linktypeName = 'UNSUPPORTED LINKTYPE'
             message = ''
             message += f'{indentation}magic: 0x{self.magic:08x},\n'
             message += f'{indentation}major: {self.major},\n'
@@ -40,7 +45,7 @@ class Pcap:
             message += f'{indentation}timezone: {self.timezone},\n'
             message += f'{indentation}significant figure: {self.significantFigure},\n'
             message += f'{indentation}snap length: {self.snapLength},\n'
-            message += f'{indentation}link type: {self.linkType}\n'
+            message += f'{indentation}link type: {self.linkType}({linktypeName})\n'
             return message
 
         def size(self):
