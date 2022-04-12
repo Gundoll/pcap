@@ -1,9 +1,9 @@
 from abc import *
 
-def makeIndentation(indentationLevel=0):
+def makeIndentation(indentationLevel):
     indentation = ''
-    for level in range(0, indentationLevel):
-        indentation += '  '
+    for idx in range(indentationLevel):
+        indentation += '\t'
     return indentation
 
 class Protocol(metaclass=ABCMeta):
@@ -21,3 +21,4 @@ class Protocol(metaclass=ABCMeta):
     @abstractmethod
     def size(self):
         return 0
+

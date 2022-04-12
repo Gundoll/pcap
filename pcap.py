@@ -1,12 +1,12 @@
 import sys
 import struct
+from protocol.link import *
 
 def makeIndentation(indentationLevel):
     indentation = ''
     for idx in range(indentationLevel):
         indentation += '\t'
     return indentation
-
 
 class Pcap:
     class Header:
@@ -46,15 +46,94 @@ class Pcap:
         def size(self):
             return 4 + 2 + 2 + 4 + 4 + 4
 
+    class Packet:
+        class Header:
+            def __init__(self):
+                self.timestampSec = 0
+                self.timestampUSec = 0
+                self.captureLength = 0 # number of octets of packet saved in file
+                self.packetLength = 0 # actural length of the packet
+
+            def parse(self, stream, offset=0):
+                self.timestampSec = int.from_bytes(stream[offset:offset+4], byteorder=sys.byteorder)
+                self.timestampUSec = int.from_bytes(stream[offset+4:offset+8], byteorder=sys.byteorder)
+                self.captureLength = int.from_bytes(stream[offset+8:offset+12], byteorder=sys.byteorder)
+                self.packetLength = int.from_bytes(stream[offset+12:offset+16], byteorder=sys.byteorder)
+
+            def toString(self, indentationLevel=0):
+                indentation = makeIndentation(indentationLevel)
+                message = ''
+                message += f'{indentation}timestamp(seconds): {self.timestampSec},\n'
+                message += f'{indentation}timestamp(micro-seconds): {self.timestampUSec},\n'
+                message += f'{indentation}capture length: {self.captureLength},\n'
+                message += f'{indentation}packet length: {self.packetLength}\n'
+                return message
+
+            def size(self):
+                return 4 + 4 + 4 + 4
+
+        class Content:
+            def __init__(self):
+                self.link = None
+
+            def parse(self, stream, offset=0):
+                # TODO: parse LinkLayer
+                return True
+
+            def toString(self, indentationLevel=0):
+                indentation = makeIndentation(indentationLevel)
+                message = ''
+                return message
+
+        def __init__(self):
+            self.header = Pcap.Packet.Header()
+            self.content = Pcap.Packet.Content()
+
+        def parse(self, file):
+            stream = file.read(16)
+            if not stream:
+                return False
+
+            self.header.parse(stream)
+
+            stream = file.read(self.header.packetLength)
+            self.content.parse(stream)
+            return True
+
+        def toString(self, indentationLevel=0):
+            indentation = makeIndentation(indentationLevel)
+            message = ''
+            message += f'{indentation}header: {{\n'
+            message += f'{self.header.toString(indentationLevel+1)}'
+            message += f'{indentation}}},\n'
+            message += f'{indentation}content: {{\n'
+            message += f'{self.content.toString(indentationLevel+1)}'
+            message += f'{indentation}}}\n'
+            return message
+
+        def size(self):
+            return self.header.size + self.header.packetLength
+
     class Content:
         def __init__(self):
             self.packets = []
 
         def parse(self, file):
-            self.packets = []
+            packet = Pcap.Packet()
+            while packet.parse(file):
+                self.packets.append(packet)
+                packet = Pcap.Packet()
 
         def toString(self, indentationLevel=0):
+            indentation = makeIndentation(indentationLevel)
             message = ''
+            for idx, packet in enumerate(self.packets):
+                message += f'{indentation}packet[{idx}]: {{\n'
+                message += f'{packet.toString(indentationLevel+1)}'
+                message += f'{indentation}}}'
+                if idx != len(self.packets)-1:
+                    message += ','
+                message += '\n'
             return message
 
     def __init__(self, filename):
