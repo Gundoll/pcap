@@ -1,6 +1,5 @@
 import sys
 import struct
-from enum import *
 
 def makeIndentation(indentationLevel):
     indentation = ''
