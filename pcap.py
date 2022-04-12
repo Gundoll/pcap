@@ -77,24 +77,11 @@ class Pcap:
             def size(self):
                 return 4 + 4 + 4 + 4
 
-        class Content:
-            def __init__(self):
-                self.link = None
-
-            def parse(self, stream, offset=0):
-                # TODO: parse LinkLayer
-                return True
-
-            def toString(self, indentationLevel=0):
-                indentation = makeIndentation(indentationLevel)
-                message = ''
-                return message
-
         def __init__(self):
             self.header = Pcap.Packet.Header()
-            self.content = Pcap.Packet.Content()
+            self.linkLayer = LinkLayer()
 
-        def parse(self, file):
+        def parse(self, file, linktype=0):
             stream = file.read(16)
             if not stream:
                 return False
@@ -102,7 +89,7 @@ class Pcap:
             self.header.parse(stream)
 
             stream = file.read(self.header.packetLength)
-            self.content.parse(stream)
+            self.linkLayer.parse(stream, linktype=linktype)
             return True
 
         def toString(self, indentationLevel=0):
@@ -112,53 +99,40 @@ class Pcap:
             message += f'{self.header.toString(indentationLevel+1)}'
             message += f'{indentation}}},\n'
             message += f'{indentation}content: {{\n'
-            message += f'{self.content.toString(indentationLevel+1)}'
+            message += f'{self.linkLayer.toString(indentationLevel+1)}'
             message += f'{indentation}}}\n'
             return message
 
         def size(self):
             return self.header.size + self.header.packetLength
 
-    class Content:
-        def __init__(self):
-            self.packets = []
-
-        def parse(self, file):
-            packet = Pcap.Packet()
-            while packet.parse(file):
-                self.packets.append(packet)
-                packet = Pcap.Packet()
-
-        def toString(self, indentationLevel=0):
-            indentation = makeIndentation(indentationLevel)
-            message = ''
-            for idx, packet in enumerate(self.packets):
-                message += f'{indentation}packet[{idx}]: {{\n'
-                message += f'{packet.toString(indentationLevel+1)}'
-                message += f'{indentation}}}'
-                if idx != len(self.packets)-1:
-                    message += ','
-                message += '\n'
-            return message
-
     def __init__(self, filename):
         self.header = Pcap.Header()
-        self.content = Pcap.Content()
+        self.packets = []
         self.filename = filename
 
     def parse(self):
         file = open(self.filename, 'rb')
         self.header.parse(file)
-        self.content.parse(file)
+
+        packet = Pcap.Packet()
+        while packet.parse(file, linktype=self.header.linkType):
+            self.packets.append(packet)
+            packet = Pcap.Packet()
         file.close()
 
     def toString(self, indentationLevel=0):
         indentation = makeIndentation(indentationLevel)
         message = f'{indentation}header: {{\n'
         message += self.header.toString(indentationLevel+1)
-        message += f'{indentation}}},\n{indentation}content: {{\n'
-        message += self.content.toString(indentationLevel+1)
-        message += f'{indentation}}}\n'
+        message += f'{indentation}}},\n'
+        for idx, packet in enumerate(self.packets):
+            message += f'{indentation}packet[{idx}]: {{\n'
+            message += f'{packet.toString(indentationLevel+1)}'
+            message += f'{indentation}}}'
+            if idx != len(self.packets)-1:
+                message += ','
+            message += '\n'
         return message
 
 if __name__=='__main__':

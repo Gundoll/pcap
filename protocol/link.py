@@ -1,5 +1,6 @@
-from .protocol import Protocol
+from .protocol import *
 from enum import *
+import sys
 
 class LinkType(Enum):
     LINKTYPE_NULL = 0
@@ -136,14 +137,75 @@ class LinkType(Enum):
     LINKTYPE_ZBOSS_NCP = 292
 
 class LinkLayer(Protocol):
+    class LinuxSLL(Protocol):
+        def __init__(self):
+            self.protocolName = 'linux cooked capture'
+            self.packetType = 0
+            self.addressType = 0
+            self.addressLength = 0
+            self.sourceAddress = 0
+            self.protocolType = 0
+
+        def parse(self, stream, offset=0):
+            self.packetType = int.from_bytes(stream[offset:offset+2], byteorder='big')
+            self.addressType = int.from_bytes(stream[offset+2:offset+4], byteorder='big')
+            self.addressLength = int.from_bytes(stream[offset+4:offset+6], byteorder='big')
+            self.sourceAddress = stream[offset+6:offset+14]
+            self.protocolType = int.from_bytes(stream[offset+14:offset+16], byteorder='big')
+            return True
+
+        def toString(self, indentationLevel=0):
+            indentation = makeIndentation(indentationLevel)
+            message = ''
+            message += f'{indentation}packet type: {self.packetType},\n'
+            message += f'{indentation}address type: {self.addressType},\n'
+            message += f'{indentation}address length: {self.addressLength},\n'
+            message += f'{indentation}source address: '
+            for idx in range(self.addressLength):
+                message += '%02x'%self.sourceAddress[idx]
+                if idx < self.addressLength-1:
+                    message += ':'
+                else:
+                    message += ',\n'
+            message += f'{indentation}protocol type: 0x{self.protocolType:04x},\n'
+            return message
+
+        def size(self):
+            return 2 + 2 + 2 + 8 + 2
+
     def __init__(self):
         self.protocolName = 'link layer'
+        self.header = None
+        self.content = None
 
-    def parse(stream, offset=0):
+    def parse(self, stream, offset=0, linktype=0):
+        try:
+            linkType = LinkType(linktype)
+        except:
+            return False
+
+        if linkType == LinkType.LINKTYPE_LINUX_SLL:
+            self.header = LinkLayer.LinuxSLL()
+
+        self.header.parse(stream, offset)
+
+        offset += self.header.size()
+
+        # TODO: parse protocol layer
+
         return True
 
     def toString(self, indentationLevel=0):
-        return ''
+        indentation = makeIndentation(indentationLevel)
+        message = ''
+        message += f'{indentation}{self.header}\n'
+        message += f'{indentation}header: {{\n'
+        message += f'{self.header.toString(indentationLevel+1)}'
+        message += f'{indentation}}},\n'
+        message += f'{indentation}content: {{\n'
+        #message += f'{self.content.toString(indentationLevel+1)}'
+        message += f'{indentation}}}\n'
+        return message
 
     def size(self):
         return 0

@@ -11,7 +11,7 @@ class Protocol(metaclass=ABCMeta):
         self.protocolName = 'unknown protocol'
 
     @abstractmethod
-    def parse(stream, offset=0):
+    def parse(self, stream, offset=0):
         return True
 
     @abstractmethod
