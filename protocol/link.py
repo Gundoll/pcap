@@ -138,6 +138,7 @@ class LinkType(Enum):
 
 class LinkLayer(Protocol):
     class LinuxSLL(Protocol):
+        # LInkLayer::LInuxSLL
         def __init__(self):
             self.protocolName = 'linux cooked capture'
             self.packetType = 0
@@ -146,6 +147,7 @@ class LinkLayer(Protocol):
             self.sourceAddress = 0
             self.protocolType = 0
 
+        # LInkLayer::LInuxSLL
         def parse(self, stream, offset=0):
             self.packetType = int.from_bytes(stream[offset:offset+2], byteorder='big')
             self.addressType = int.from_bytes(stream[offset+2:offset+4], byteorder='big')
@@ -154,6 +156,7 @@ class LinkLayer(Protocol):
             self.protocolType = int.from_bytes(stream[offset+14:offset+16], byteorder='big')
             return True
 
+        # LInkLayer::LInuxSLL
         def toString(self, indentationLevel=0):
             indentation = makeIndentation(indentationLevel)
             message = ''
@@ -170,14 +173,134 @@ class LinkLayer(Protocol):
             message += f'{indentation}protocol type: 0x{self.protocolType:04x},\n'
             return message
 
+        # LInkLayer::LInuxSLL
         def size(self):
             return 2 + 2 + 2 + 8 + 2
 
+    class Ehternet(Protocol):
+        class Header(Protocol):
+            # LInkLayer::Ethernet::Header
+            def __init__(self):
+                self.protocolName = 'Ethernet Header'
+                self.dstAddress = []
+                self.srcAddress = []
+                self.etherType = 0
+
+            # LInkLayer::Ethernet::Header
+            def parse(self, stream, offset=0):
+                return True
+
+            # LInkLayer::Ethernet::Header
+            def toString(self, indentationLevel=0):
+                indentation = makeIndentation(indentationLevel)
+                message = ''
+                return message
+
+            # LInkLayer::Ethernet::Header
+            def size(self):
+                return 0
+
+        class EhternetII(Protocol):
+            # LInkLayer::Ethernet::EnternetII
+            def __init__(self):
+                self.protocolName = 'Ethernet II'
+
+            # LInkLayer::Ethernet::EnternetII
+            def parse(self, stream, offset=0):
+                return True
+
+            # LInkLayer::Ethernet::EnternetII
+            def toString(self, indentationLevel=0):
+                indentation = makeIndentation(indentationLevel)
+                message = ''
+                return message
+
+            # LInkLayer::Ethernet::EnternetII
+            def size(self):
+                return 0
+
+        class EhternetNovel(Protocol):
+            # LInkLayer::Ethernet::EnternetNovel
+            def __init__(self):
+                self.protocolName = 'Novel raw IEEE 802.3'
+
+            # LInkLayer::Ethernet::EnternetNovel
+            def parse(self, stream, offset=0):
+                return True
+
+            # LInkLayer::Ethernet::EnternetNovel
+            def toString(self, indentationLevel=0):
+                indentation = makeIndentation(indentationLevel)
+                message = ''
+                return message
+
+            # LInkLayer::Ethernet::EnternetNovel
+            def size(self):
+                return 0
+
+        class EhternetLLC(Protocol):
+            # LInkLayer::Ethernet::EnternetLLC
+            def __init__(self):
+                self.protocolName = 'IEEE 802.2 LLC'
+
+            # LInkLayer::Ethernet::EnternetLLC
+            def parse(self, stream, offset=0):
+                return True
+
+            # LInkLayer::Ethernet::EnternetLLC
+            def toString(self, indentationLevel=0):
+                indentation = makeIndentation(indentationLevel)
+                message = ''
+                return message
+
+            # LInkLayer::Ethernet::EnternetLLC
+            def size(self):
+                return 0
+
+        class EhternetSNAP(Protocol):
+            # LInkLayer::Ethernet::EnternetSNAP
+            def __init__(self):
+                self.protocolName = 'IEEE 802.2 SNAP'
+
+            # LInkLayer::Ethernet::EnternetSNAP
+            def parse(self, stream, offset=0):
+                return True
+
+            # LInkLayer::Ethernet::EnternetSNAP
+            def toString(self, indentationLevel=0):
+                indentation = makeIndentation(indentationLevel)
+                message = ''
+                return message
+
+            # LInkLayer::Ethernet::EnternetSNAP
+            def size(self):
+                return 0
+
+        # LinkLayer::Ethernet
+        def __init__(self):
+            self.protocolName = 'Ethernet'
+
+        # LinkLayer::Ethernet
+        def parse(self, stream, offset=0):
+            return True
+
+        # LinkLayer::Ethernet
+        def toString(self, indentationLevel=0):
+            indentation = makeIndentation(indentationLevel)
+            message = ''
+            return message
+
+        # LinkLayer::Ethernet
+        def size(self):
+            return 0
+
+    # LinkLayer
     def __init__(self):
         self.protocolName = 'link layer'
         self.header = None
         self.content = None
 
+    # LinkLayer
     def parse(self, stream, offset=0, linktype=0):
         try:
             linkType = LinkType(linktype)
@@ -195,6 +318,7 @@ class LinkLayer(Protocol):
 
         return True
 
+    # LinkLayer
     def toString(self, indentationLevel=0):
         indentation = makeIndentation(indentationLevel)
         message = ''
@@ -207,6 +331,7 @@ class LinkLayer(Protocol):
         message += f'{indentation}}}\n'
         return message
 
+    # LinkLayer
     def size(self):
         return 0
 
