@@ -178,13 +178,30 @@ class LinkLayer(Protocol):
         def size(self):
             return 2 + 2 + 2 + 8 + 2
 
+        # LinkLayer::LinuxSLL
+        def createContent(self):
+            if self.protocolType == 0x0800:
+                # TODO: return NetworkLayer::IPv4
+                return None
+
+            return None
+
     class Ethernet(Protocol):
+        # LinkLayer::Ethernet
+        class EthernetKind(Enum):
+            UNKNOWN = 0
+            ETHERNET_II = 1
+            LLC = 2
+            SNAP = 3
+            NOVELL = 4
+
         # LinkLayer::Ethernet
         def __init__(self):
             self.protocolName = 'ethernet'
             self.dstAddress = []
             self.srcAddress = []
             self.etherType = 0
+            self.kind = LinkLayer.Ethernet.EthernetKind.UNKNOWN
 
         # LinkLayer::Ethernet
         def parse(self, stream, offset=0):
@@ -192,16 +209,20 @@ class LinkLayer(Protocol):
             self.srcAddress = struct.unpack('BBBBBB', stream[offset+6:offset+12])
             self.etherType = int.from_bytes(stream[offset+12:offset+14], byteorder='big')
 
-            if self.etherType >= 1536:
+            if self.etherType >= 0x0600:
                 self.protocolName = 'ethernet ii'
-            elif self.etherType < 1500:
+                self.kind = LinkLayer.Ethernet.EthernetKind.ETHERNET_II
+            elif self.etherType < 0x05dc:
                 ethernetChecker = int.from_bytes(stream[offset+14:offset+16], byteorder='big')
                 if ethernetChecker == 0xffff:
-                    self.protocolName = 'ethernet novel raw ieee 802.3 non-standard variation'
+                    self.protocolName = 'ethernet novell raw ieee 802.3 non-standard variation'
+                    self.kind = LinkLayer.Ethernet.EthernetKind.NOVELL
                 elif ethernetChecker == 0xaaaa:
                     self.protocolName = 'ethernet ieee 802.2 subnetwork access protocol'
+                    self.kind = LinkLayer.Ethernet.EthernetKind.SNAP
                 else:
                     self.protocolName = 'ethernet ieee 802.2 logical link control'
+                    self.kind = LinkLayer.Ethernet.EthernetKind.LLC
             else:
                 self.body = None
 
@@ -219,6 +240,28 @@ class LinkLayer(Protocol):
         # LinkLayer::Ethernet
         def size(self):
             return 6 + 6 + 2
+
+        # LinkLayer::Ethernet
+        def createContent(self):
+            if self.kind == LinkLayer.Ethernet.EthernetKind.ETHERNET_II:
+                if self.etherType == 0x0800:
+                    # TODO: return NetworkLayer::IPv4
+                    return None
+                elif self.etherType == 0x0806:
+                    # TODO: return NetworkLayer::ARP
+                    return None
+                elif self.etherType == 0x86dd:
+                    # TODO: return NetworkLayer::IPv6
+                    return None
+            elif self.kind == LinkLayer.Ethernet.EthernetKind.LLC:
+                return None
+            elif self.kind == LinkLayer.Ethernet.EthernetKind.SNAP:
+                return None
+            elif self.kind == LinkLayer.Ethernet.EthernetKind.NOVELL:
+                return None
+            else:
+                return None
+            return None
 
     # LinkLayer
     def __init__(self):
@@ -242,7 +285,9 @@ class LinkLayer(Protocol):
 
         offset += self.header.size()
 
-        # TODO: parse protocol layer
+        self.content = self.header.createContent()
+        if self.content:
+            self.content.parse(stream, offset)
 
         return True
 
@@ -255,7 +300,10 @@ class LinkLayer(Protocol):
         message += f'{self.header.toString(indentationLevel+1)}'
         message += f'{indentation}}},\n'
         message += f'{indentation}content: {{\n'
-        #message += f'{self.content.toString(indentationLevel+1)}'
+        if self.content:
+            message += f'{self.content.toString(indentationLevel+1)}'
+        else:
+            message += f'{indentation}\tNone\n'
         message += f'{indentation}}}\n'
         return message
 
