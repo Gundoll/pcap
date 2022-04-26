@@ -1,4 +1,5 @@
 from .protocol import *
+from .network import *
 from enum import *
 import sys
 import struct
@@ -354,6 +355,11 @@ class EtherType(Enum):
     ETHERTYPE_ISC_BUNKER_RAMO = 0xFF00#-FF0F
     ETHERTYPE_RESERVED = 0xFFFF
 
+NetTypeDict = {
+        EtherType.ETHERTYPE_IPV4 : NetType.NETTYPE_IPV4,
+        EtherType.ETHERTYPE_IPV6 : NetType.NETTYPE_IPV6
+}
+
 class LinkLayer(Protocol):
     class LinuxSLL(Protocol):
         # LinkLayer::LinuxSLL
@@ -398,14 +404,18 @@ class LinkLayer(Protocol):
         # LinkLayer::LinuxSLL
         def createContent(self):
             content = None
+            contentType = None
+            netType = None
             try:
-                content = EtherType(self.protocolType)
+                contentType = EtherType(self.protocolType)
+                netType = NetTypeDict[contentType]
             except:
-                content =  None
+                contentType =  None
+                netType = NetType.NETTYPE_UNKNOWN
 
-            if content == EtherType.ETHERTYPE_IPV4:
-                # TODO: return NetworkLayer::IPv4
-                return None
+            if contentType == EtherType.ETHERTYPE_IPV4:
+                content = NetworkLayer(netType)
+                return content
 
             return None
 
@@ -468,20 +478,24 @@ class LinkLayer(Protocol):
         def createContent(self):
             if self.kind == LinkLayer.Ethernet.EthernetKind.ETHERNET_II:
                 content = None
+                contentType = None
+                netType = None
                 try:
-                    content = EtherType(self.etherType)
+                    contentType = EtherType(self.etherType)
+                    netType = NetTypeDict[contentType]
                 except:
-                    content =  None
+                    contentType =  None
+                    netType = NetType.NETTYPE_UNKNOWN
 
-                if content == EtherType.EHTERTYPE_IPV4:
-                    # TODO: return NetworkLayer::IPv4
-                    return None
-                elif content == EtherType.EHTERTYPE_ARP:
+                if contentType == EtherType.EHTERTYPE_IPV4:
+                    content = NetworkLayer(netType)
+                    return content
+                elif contentType == EtherType.EHTERTYPE_ARP:
                     # TODO: return NetworkLayer::ARP
                     return None
-                elif content == EtherType.EHTERTYPE_IPV6:
-                    # TODO: return NetworkLayer::IPv6
-                    return None
+                elif contentType == EtherType.EHTERTYPE_IPV6:
+                    content = NetworkLayer(netType)
+                    return content
             elif self.kind == LinkLayer.Ethernet.EthernetKind.LLC:
                 return None
             elif self.kind == LinkLayer.Ethernet.EthernetKind.SNAP:
