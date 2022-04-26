@@ -23,8 +23,8 @@ class NetworkLayer(Protocol):
             self.ttl = 0
             self.protocolId = 0
             self.headerChecksum = 0
-            self.srcAddress = ''
-            self.dstAddress = ''
+            self.srcAddress = []
+            self.dstAddress = []
             self.options = 0
 
         # NetworkLayer::IPv4
@@ -35,7 +35,7 @@ class NetworkLayer(Protocol):
             self.totalPacketLength = int.from_bytes(stream[offset+2:offset+4], byteorder='big')
             self.identifier = int.from_bytes(stream[offset+4:offset+6], byteorder='big')
             self.flags = (stream[offset+6] & 0xe0) >> 5
-            self.fragmentOffset = int.from_bytes([stream[offset+6] & 0x01f, stream[offset+7]], byteorder='big')
+            self.fragmentOffset = int.from_bytes([stream[offset+6] & 0x1f, stream[offset+7]], byteorder='big')
             self.ttl = stream[offset+8]
             self.protocolId = stream[offset+9]
             self.headerChecksum = int.from_bytes(stream[offset+10:offset+12], byteorder='big')
@@ -75,20 +75,72 @@ class NetworkLayer(Protocol):
 
     class IPv6(Protocol):
         # NetworkLayer::IPv6
+        class HeaderExtensionKind(Enum):
+            HEADERKIND_HOP_BY_HOP = 0
+            HEADERKIND_TCP = 7
+            HEADERKIND_UDP = 17
+            HEADERKIND_DEFAUILT = 41
+            HEADERKIND_SOURCE_ROUTING = 43
+            HEADERKIND_FRAGMENTATION = 44
+            HEADERKIND_ESP = 50 # Encapsulating Security Payload
+            HEADERKIND_AUTHENTICATION = 51
+            HEADERKIND_ICMPV6 = 58
+            HEADERKIND_EOH = 59 # End of headers (no next header)
+            HEADERKIND_DESTINATION = 60
+            HEADERKIND_MOBILITY = 135
+            HEADERKIND_HOST_IDENTITY_PROTOCOL = 139
+            HEADERKIND_SHIM6_PROTOCOL = 140
+            HEADERKIND_EXPERIMENTAL_N_TESTING_1 = 253
+            HEADERKIND_EXPERIMENTAL_N_TESTING_2 = 254
+
+        # NetworkLayer::IPv6
         def __init__(self):
             self.protocolName = 'internet protocol version 6'
+            self.version = 0
+            self.trafficClass = 0
+            self.flowLabel = 0
+            self.payloadLength = 0
+            self.nextHeader = 0
+            self.hopLimit = 0
+            self.srcAddress = []
+            self.dstAddress = []
+            self.headerKind = None
 
         # NetworkLayer::IPv6
         def parse(self, stream, offset=0):
+            self.version = stream[offset] >> 4
+            self.trafficClass = ((stream[offset] & 0x0f) << 4) + (stream[offset+1] >> 4)
+            self.flowLabel = int.from_bytes([stream[offset+1] & 0x0f, stream[offset+2], stream[offset+3]], byteorder='big')
+            self.payloadLength = int.from_bytes(stream[offset+4:offset+6], byteorder='big')
+            self.nextHeader = stream[offset+6]
+            self.hopLimit = stream[offset+7]
+            self.srcAddress = struct.unpack('BBBBBBBBBBBBBBBB', stream[offset+8:offset+24])
+            self.dstAddress = struct.unpack('BBBBBBBBBBBBBBBB', stream[offset+24:offset+40])
+
+            try:
+                self.headerKind = NetworkLayer.IPv6.HeaderExtensionKind(self.nextHeader)
+            except:
+                self.headerKind = None
+
             return True
 
         # NetworkLayer::IPv6
         def toString(self, indentationLevel=0):
-            return ''
+            indentation = makeIndentation(indentationLevel)
+            message = ''
+            message += f'{indentation}version: {self.version},\n'
+            message += f'{indentation}traffic class: 0x{self.trafficClass:02x},\n'
+            message += f'{indentation}flow label: 0x{self.flowLabel:05x},\n'
+            message += f'{indentation}payload length: {self.payloadLength},\n'
+            message += f'{indentation}next header: {self.nextHeader} ({self.headerKind}),\n'
+            message += f'{indentation}hop limit: {self.hopLimit},\n'
+            message += f'{indentation}source ip address: {self.srcAddress},\n'
+            message += f'{indentation}destination ip address: {self.dstAddress}\n'
+            return message
 
         # NetworkLayer::IPv6
         def size(self):
-            return 0
+            return 40 # + alpha(depend on the next header chain)
 
         # NetworkLayer::IPv6
         def createContent(self):
