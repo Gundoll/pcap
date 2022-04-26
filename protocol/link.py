@@ -487,13 +487,13 @@ class LinkLayer(Protocol):
                     contentType =  None
                     netType = NetType.NETTYPE_UNKNOWN
 
-                if contentType == EtherType.EHTERTYPE_IPV4:
+                if contentType == EtherType.ETHERTYPE_IPV4:
                     content = NetworkLayer(netType)
                     return content
-                elif contentType == EtherType.EHTERTYPE_ARP:
+                elif contentType == EtherType.ETHERTYPE_ARP:
                     # TODO: return NetworkLayer::ARP
                     return None
-                elif contentType == EtherType.EHTERTYPE_IPV6:
+                elif contentType == EtherType.ETHERTYPE_IPV6:
                     content = NetworkLayer(netType)
                     return content
             elif self.kind == LinkLayer.Ethernet.EthernetKind.LLC:
