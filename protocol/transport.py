@@ -11,20 +11,48 @@ class TransportLayer(Protocol):
         # TransportLayer::TCP
         def __init__(self):
             self.protocolName = 'transmission control protocol'
+            self.sourcePort = 0
+            self.destinationPort = 0
+            self.sequenceNumber = 0
+            self.acknowledgementNumber = 0
+            self.headerLength = 0
+            self.flags = 0
+            self.windowSize = 0
+            self.checksum = 0
+            self.urgentPointer = 0
+            # TODO: options
 
         # TransportLayer::TCP
         def parse(self, stream, offset=0):
+            self.sourcePort = int.from_bytes(stream[offset:offset+2], byteorder='big')
+            self.destinationPort = int.from_bytes(stream[offset+2:offset+4], byteorder='big')
+            self.sequenceNumber = int.from_bytes(stream[offset+4:offset+8], byteorder='big')
+            self.acknowledgementNumber = int.from_bytes(stream[offset+8:offset:12], byteorder='big')
+            self.headerLength = stream[offset+12] >> 4
+            self.flags = int.from_bytes([(stream[offset+12] & 0x01), stream[offset+13]], byteorder='big')
+            self.windowSize = int.from_bytes(stream[offset+14:offset+16], byteorder='big')
+            self.checksum = int.from_bytes(stream[offset+16:offset+18], byteorder='big')
+            self.urgentPointer = int.from_bytes(stream[offset+18:offset+20], byteorder='big')
             return True
 
         # TransportLayer::TCP
         def toString(self, indentationLevel=0):
             indentation = makeIndentation(indentationLevel)
             message = ''
+            message += f'{indentation}source port: {self.sourcePort},\n'
+            message += f'{indentation}destination port: {self.destinationPort},\n'
+            message += f'{indentation}sequence number: {self.sequenceNumber},\n'
+            message += f'{indentation}acknowledgement number: {self.acknowledgementNumber},\n'
+            message += f'{indentation}header length: {self.headerLength},\n'
+            message += f'{indentation}flags: 0x{self.flags:02x},\n'
+            message += f'{indentation}window size: {self.windowSize},\n'
+            message += f'{indentation}checksum: 0x{self.checksum:04x},\n'
+            message += f'{indentation}urgent pointer: {self.urgentPointer}\n'
             return message
 
         # TransportLayer::TCP
         def size(self):
-            return 0
+            return self.headerLength * 4
 
         # TransportLayer::TCP
         def createContent(self):
