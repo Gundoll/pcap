@@ -26,6 +26,10 @@ class TransportLayer(Protocol):
         def size(self):
             return 0
 
+        # TransportLayer::TCP
+        def createContent(self):
+            return None
+
     class UDP(Protocol):
         # TransportLayer::UDP
         def __init__(self):
@@ -44,6 +48,10 @@ class TransportLayer(Protocol):
         # TransportLayer::UDP
         def size(self):
             return 0
+
+        # TransportLayer::UDP
+        def createContent(self):
+            return None
 
     # TransportLayer
     def __init__(self, transporttype=TransportType.TRANSPORTTYPE_UNKNOWN):
@@ -75,7 +83,7 @@ class TransportLayer(Protocol):
         self.content = self.header.createContent()
 
         # step 5. parse content
-        if self.content
+        if self.content:
             self.content.parse(stream, offset)
 
         return True
